@@ -1,0 +1,609 @@
+@extends('layouts.app')
+
+@section('content')
+
+<div class="container mt-4">
+
+    <h3 class="mb-3">Company Directory</h3>
+    <a href="/companies">Table</a> OR <a href="/company_card">Card Format</a>
+    <button id="viewAllCompany" class="btn btn-sm mb-2 btn-secondary">View All Company</button>
+    <button class="btn btn-sm btn-success mb-2" id="bulkAssignBtn">Assign Agent</button>
+
+    <input type="text"
+           id="companySearch"
+           class="form-control mb-4"
+           placeholder="Search Company or Contact Person...">
+
+    <div id="summary" class="mb-3 text-muted"></div>
+
+    <div class="row" id="companyList"></div>
+    <div id="paginationContainer" class="mt-3"></div>
+</div>
+
+
+
+<!-- For Carousel Modal -->
+<div class="modal fade" id="imageCarouselModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-body">
+
+                <div id="participantCarousel" class="carousel slide" data-ride="carousel">
+
+                    <div class="carousel-inner" id="carouselImages">
+                        <!-- Images will be inserted here via JS -->
+                    </div>
+
+                    <a class="carousel-control-prev" href="#participantCarousel" data-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </a>
+
+                    <a class="carousel-control-next" href="#participantCarousel" data-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- Ending of Carousel Modal -->
+
+<!-- MOdal for Assigning of PSC -->
+ <div class="modal fade" id="assignModal">
+<div class="modal-dialog">
+<div class="modal-content">
+
+<div class="modal-header">
+<h5>Assign PSC</h5>
+</div>
+
+<div class="modal-body">
+
+<select id="psc_id" name="psc_id" class="form-control">
+    @foreach($users as $user)
+        <option value="{{$user->emp_id}}">
+            {{$user->first_name}} {{$user->last_name}}
+        </option>
+    @endforeach
+</select>
+</div>
+
+<div class="modal-footer">
+<button class="btn btn-primary" id="confirmAssign">
+Save Assignment
+</button>
+</div>
+
+</div>
+</div>
+</div>
+ <!-- Ending of Modal Assigning of PSC -->
+
+
+ <!-- Modal to update the Status of Attendees -->
+ <div class="modal fade" id="statusModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      
+      <div class="modal-header">
+        <h5 class="modal-title">You are Updating the status of</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="participant_id">
+         <p id="CompanyName" class="bg bg-success text-white p-2"></p>   
+        <div class="mb-3">
+            <label>Select Activity</label>
+            <select class="form-control" id="lead_status">
+                     <option value="">-- Select Category --</option>
+                    @foreach($lead_agent_status as $lead_status)
+                        <option value="{{ $lead_status->id }}" data-description="{{ $lead_status->description }}">
+                            {{ $lead_status->lead_status }}
+                        </option>
+                    @endforeach
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>Description</label>
+            <textarea class="form-control" id="description"></textarea>
+        </div>
+
+        <div class="mb-3" id="signedProposalFileWrapper" style="display:none;">
+            <label>Upload Signed Proposal</label>
+            <input type="file" class="form-control" id="signed_proposal_file">
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-success" id="saveStatus">
+            Save
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Ending of Modal Update Status Attendees -->
+
+
+ <!-- Modal to update Address Modal -->
+ <div class="modal fade" id="AddressModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      
+      <div class="modal-header">
+        <h5 class="modal-title">Updating Address Form</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="company_id">
+         <p id="company_name" class="bg bg-success text-white p-2"></p>   
+    
+
+        <div class="mb-3">
+            <label>Input Addres</label>
+            <textarea class="form-control" id="Address"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-success" id="saveAddress">
+            Save
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Ending of Modal Update Address Modal -->
+
+<style>
+.participant_checkbox{
+    appearance: none;
+    -webkit-appearance: none;
+    width:18px;
+    height:18px;
+    border:2px solid red;
+    border-radius:3px;
+    background-color:white;
+    cursor:pointer;
+}
+.participant_checkbox:checked{
+    background-color:red;
+}
+.img-thumbnail{
+    object-fit: cover;
+}
+</style>
+
+<script>
+
+$('#lead_status').on('change', function () {
+    let selected_lead_status = $(this).val();
+console.log(selected_lead_status);
+    if (selected_lead_status == 9) {
+        $('#signedProposalFileWrapper').show();
+        $('#signed_proposal_file').prop('required', true);
+    } else {
+        $('#signedProposalFileWrapper').hide();
+        $('#signed_proposal_file').prop('required', false);
+        $('#signed_proposal_file').val('');
+    }
+});
+
+
+
+//Ginamit ko ito para ma auto fill yung text area
+document.getElementById('lead_status').addEventListener('change', function() {
+    let selectedOption = this.options[this.selectedIndex];
+    let description = selectedOption.getAttribute('data-description');
+
+    document.getElementById('description').value = description ?? '';
+});
+
+
+//Use to Save Assigned PSC
+$('#confirmAssign').click(function(){
+
+    let selected = [];
+
+    $('.participant_checkbox:checked').each(function(){
+        selected.push($(this).val());
+    });
+
+    let psc_id = $('#psc_id').val();
+
+    $.ajax({
+        url: '/participants/bulk-assign',
+        type: 'POST',
+        data:{
+            _token      : "{{ csrf_token() }}",
+            participants: selected,
+            psc_id      : psc_id
+        },
+        success:function(){
+
+                 Swal.fire({
+                icon             : 'success',
+                title            : 'Saved!',
+                text             : 'Successfully Assigned Agent.',
+                timer            : 2000,
+                showConfirmButton: false,
+                toast            : true,
+                position         : 'top-center'
+                 });
+            $('#assignModal').modal('hide');
+            loadCompanies();
+
+        }
+    });
+
+});
+
+
+$(document).on('click','.btnAddContact', function(){
+
+    let companyId = $(this).data('id');
+
+    window.location.href ="http://127.0.0.1:8000/participant/create?company_id=" + companyId;
+
+});
+
+
+$('#bulkAssignBtn').click(function(){
+
+    let selected = [];
+
+    $('.participant_checkbox:checked').each(function(){
+        selected.push($(this).val());
+    });
+
+    if(selected.length === 0){
+            Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Please select at least one participant',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            backdrop: true
+                });
+
+        return;
+    }
+
+    $('#assignModal').modal('show');
+
+});
+
+
+
+//Use to view Photo in carousel design
+$(document).on('click','.viewImages', function(){
+
+    let participant_id = $(this).data('participant-id');
+
+    $.get("/participants/images/"+participant_id, function(images){
+
+        let html = '';
+
+        $.each(images, function(i,img){
+
+            html += `
+            <div class="carousel-item ${i === 0 ? 'active' : ''}">
+                <img src="/storage/participants/${img.image_name}" class="d-block w-100">
+            </div>`;
+        });
+
+        $('#carouselImages').html(html);
+
+        $('#imageCarouselModal').modal('show');
+
+    });
+
+});
+
+
+let companiesData = []; // store AJAX response globally
+let viewAllMode = false;
+
+// Load Companies
+function loadCompanies(url = "/company_card/list?page=1") {
+    $.ajax({
+        url: url,
+        type: "GET",
+        data: {
+            search: $('#companySearch').val(),
+            view_all: viewAllMode ? 1 : 0
+        },
+        beforeSend: function(){
+            $('#companyList').html('<div class="text-center w-100">Loading...</div>');
+        },
+        success: function(response){
+            companiesData = response.data;
+            let html = '';
+
+            response.data.forEach(company => {
+                let participants = company.participants ?? [];
+                let contactHtml = '';
+
+                // Build contact HTML with images per participant
+                participants.forEach((c, index) => {
+                    let imagesHtml = '';
+                    if(c.images && c.images.length > 0){
+                        let img = c.images[0]; // first thumbnail
+                        imagesHtml += `<img src="/storage/participants/${img.image_name}" alt="${c.participant_name}" 
+                        class="img-thumbnail participant-img viewImages" style="width:60px; height:60px;" data-participant-id="${img.participant_id}">`;
+                    } else {
+                        imagesHtml = '<div class="text-muted">No images</div>';
+                    }
+
+                    contactHtml += `
+                        <div class="mb-2">
+                            <strong>${index + 1}. ${c.participant_name ?? ''}</strong><br>
+                            📞 ${c.participant_contact ?? ''}<br>
+                            📧 ${c.participant_email ?? ''}<br>
+                            📍  ${c.participant_address ?? ''}<br>
+                           
+                               ${imagesHtml}
+                        </div>
+                        <hr>
+                    `;
+                });
+
+                // Build Latest Update HTML per company
+              let latestUpdateHtml = '';
+
+if(company.latest_updates && company.latest_updates.length > 0){
+    company.latest_updates.forEach(update => {
+        latestUpdateHtml += `
+            <div class="latest-update border p-2 mb-2">
+                <span><strong>Status:</strong> ${update.lead_status}</span><br>
+                <span><strong>Date:</strong> ${update.update_date}</span>
+            </div>
+        `;
+    });
+} else {
+    latestUpdateHtml = '<p>No updates yet.</p>';
+}
+
+                // Agent Details
+                let agentHtml = '';
+                if(company.assigned_agent){
+                    agentHtml = `
+                        <div class="alert alert-success p-2" id="AssignedPSC">
+                            👤 ${company.assigned_agent.psc_name ?? 'N/A'} <br>
+                            🆔 ${company.assigned_agent.psc_emp_id ?? 'N/A'}
+                        </div>
+                    `;
+                } else {
+                    agentHtml = `<div class="text-muted">No Agent Assigned</div>`;
+                }
+
+                // Build company card
+                html += `
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm h-100 border-0">
+                            <div class="card-body">
+                                <h5 class="text-primary font-weight-bold ">${company.company_name ?? ''} </h5>
+                                - ${company.id}
+                                <i class="far fa-building"></i>
+                                <span style="font-size:12px; color: green; font-style: italic; " class="mb-3">${company.address ?? 'No Address'}</span>
+                                <i class="fas fa-edit text-secondary " style="cursor:pointer;" title="Click to Update Address" id="UpdateAddressModal" data-c_id="${company.id}" data-company_name="${company.company_name}"></i><br>
+                                <input type="checkbox" class="participant_checkbox mt-3" value="${company.id ?? ''}">
+                                <span style="font-size:10px; color: red; font-style: italic;"> Check to Assigned Agent</span>
+                                ${contactHtml}
+                            </div>
+                            <div class="card-body">
+                                <h6>Agent Details</h6>
+                                <hr>
+                                ${agentHtml}
+                                <p>Latest Update</p>
+                                ${latestUpdateHtml}
+                               
+                                <button class="btn btn-sm btn-secondary btnUpdateStatus" data-id="${company.id}" data-cname="${company.company_name ?? ''}">Update Status</button>
+                                <button class="btn btn-sm btn-warning btnAddContact" data-id="${company.id}">Add Contact</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            $('#companyList').html(html);
+            buildPagination(response);
+            $('#summary').html(`Showing ${response.from} - ${response.to} of ${response.total} companies`);
+        }
+    });
+}
+
+// Pagination builder
+function buildPagination(response){
+    let pagination = '';
+    if(response.last_page > 1){
+        pagination += `<nav><ul class="pagination justify-content-center">`;
+        if(response.prev_page_url){
+            pagination += `<li class="page-item">
+                <a class="page-link pagination-link" href="#" data-url="${response.prev_page_url}">Previous</a>
+            </li>`;
+        }
+        for(let i=1; i<=response.last_page; i++){
+            if(i >= response.current_page - 2 && i <= response.current_page + 2){
+                pagination += `<li class="page-item ${i == response.current_page ? 'active' : ''}">
+                    <a class="page-link pagination-link" href="#" data-url="/company_card/list?page=${i}">${i}</a>
+                </li>`;
+            }
+        }
+        if(response.next_page_url){
+            pagination += `<li class="page-item">
+                <a class="page-link pagination-link" href="#" data-url="${response.next_page_url}">Next</a>
+            </li>`;
+        }
+        pagination += `</ul></nav>`;
+    }
+    $('#paginationContainer').html(pagination);
+}
+
+// Document ready
+$(document).ready(function(){
+    loadCompanies();
+
+    let searchTimeout;
+    $('#companySearch').on('keyup', function(){
+        viewAllMode = false;
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            loadCompanies("/company_card/list?page=1");
+        }, 400);
+    });
+});
+
+// Pagination click
+$(document).on('click', '.pagination-link', function(e){
+    e.preventDefault();
+    let url = $(this).data('url');
+    if(viewAllMode){
+        loadCompanies(url + "&view_all=1");
+    }else{
+        loadCompanies(url + "&search=" + $('#companySearch').val());
+    }
+});
+
+
+//Use to update status of attendees
+$('#saveStatus').click(function(){
+
+    var id          = $('#participant_id').val();
+    var lead_status = $('#lead_status').val();
+    var description = $('#description').val();
+    var files       = $('#signed_proposal_file')[0].files;
+
+    // Required only if status = 9
+    if (lead_status == 9 && files.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'File Required',
+            text: 'Please upload the signed proposal file.'
+        });
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append('_token', '{{ csrf_token() }}');
+    formData.append('status', lead_status);
+    formData.append('description', description);
+
+    // Attach files only if exists
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files[]', files[i]);
+    }
+
+    $.ajax({
+        url: "/participants/update-status/" + id,
+        type: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response){
+
+            $('#statusModal').modal('hide');
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Saved!',
+                text: 'Successfully Updated the lead status.',
+                timer: 2000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-center'
+            });
+
+            loadCompanies();
+        }
+    });
+
+});
+
+//Use to open the modal only
+$(document).on('click', '.btnUpdateStatus', function(){
+
+    var id          = $(this).data('id');
+    var cname       = $(this).data('cname');
+    var lead_status = $(this).data('lead_status');
+
+    $('#CompanyName').text(cname);
+     $('#participant_id').val(id);
+    $('#lead_status').val(lead_status);
+
+    
+    $('#statusModal').modal('show');
+});
+
+//Use to open the Modal and display details about company
+$(document).on('click', '#UpdateAddressModal', function(){
+
+    var c_id         = $(this).data('c_id');
+    var company_name = $(this).data('company_name');
+    var status       = $(this).data('status');
+
+    //alert(company_name)
+
+    $('#company_name').text(company_name);
+     $('#company_id').val(c_id);
+    $('#status').val(status);
+
+    
+    $('#AddressModal').modal('show');
+});
+
+
+//Use to update CompanyAddress
+$('#saveAddress').click(function(){
+
+    let company_id = $('#company_id').val();
+    let address    = $('#Address').val();
+
+   console.log(address)
+
+    $.ajax({
+        url: '/companies/update-address',
+        type: 'POST',
+        data: {
+            _token    : '{{ csrf_token() }}',
+            company_id: company_id,
+            address   : address
+        },
+        success: function(response){
+            $('#CompanyTbl').DataTable().ajax.reload(null, false);
+           // alert('Address updated!');
+            Swal.fire({
+                icon             : 'success',
+                title            : 'Saved!',
+                text             : 'Company Address has been updated!',
+                timer            : 2000,
+                showConfirmButton: false,
+                toast            : true,
+                position         : 'top-center'
+                 });
+            $('#AddressModal').modal('hide');
+            $('#Address').val('');
+          //  loadCompanies();
+          //$('#CompanyTbl').DataTable().ajax.reload();
+          loadCompanies();
+        }
+    });
+
+});
+
+</script>
+
+@endsection
