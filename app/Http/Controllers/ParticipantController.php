@@ -33,13 +33,8 @@ class ParticipantController extends Controller
 
    public function index(Request $request)
     {
-        // dd(session('user')); // test session
-        // If request is ajax (DataTable request)
+       
         if ($request->ajax()) {
-
-            /* return DataTables::of(Participants::query())
-                ->addIndexColumn()
-                ->make(true); */
 
              return DataTables::of(Participants::with('images')->orderBy('id', 'desc'))
 
@@ -77,6 +72,10 @@ class ParticipantController extends Controller
 
                 })
 
+               ->addColumn('name_position', function($row){
+    return $row->participant_name . '<br>' . $row->participant_position;
+})
+
               ->addColumn('action', function($row){
 
                     $status      = $row->status ?? 'N/A';
@@ -111,8 +110,8 @@ class ParticipantController extends Controller
                             </div>
                         ';
                     })
-
-               ->rawColumns(['checkbox','participant_photo','action'])
+              
+               ->rawColumns(['name_position','checkbox','participant_photo','action'])
                 ->make(true);
         }
   $users = ExternalUser::getUsersWithCompanyAndDepartment();
@@ -698,22 +697,7 @@ public function search(Request $request)
 {
     $search = $request->search;
 
-   /*  $contacts = Participants::query()
-
-        ->when($search, function($query) use ($search){
-
-            $query->where('participant_name', 'like', "%$search%")
-                  ->orWhere('participant_email', 'like', "%$search%")
-                  ->orWhere('participant_company', 'like', "%$search%")
-                  ->orWhere('assigned_psc', 'like', "%$search%");
-
-        })
-        ->orderBy('participant_name')
-        ->limit(50) // ⭐ Performance optimization
-        ->get();
- */
-
-        $contacts = Participants::query()
+$contacts = Participants::query()
     ->when($search, function($query) use ($search) {
         $query->where(function($q) use ($search) {
             $q->where('participant_name', 'like', "%$search%")
@@ -730,97 +714,7 @@ public function search(Request $request)
     return response()->json($contacts);
 }
 
-/* public function storeAjax(Request $request)
-{
-    $request->validate([
-        'company_id'       => 'required',
-        'participant_name' => 'required'
-    ]);
 
-    $user = Auth::user();
-
-    $participant = \App\Models\Participants::create([
-        'company_id'           => $request->company_id,
-        'entry_by'             => $user->emp_id,
-        'day_num'              => now()->setTimezone('Asia/Manila')->format('Y-m-d'),
-        'participant_name'     => $request->participant_name,
-        'participant_email'    => $request->email,
-        'participant_contact'  => $request->contact,
-        'participant_position' => $request->participant_position,
-        'participant_source'   => $request->participant_source,
-        'participant_address'  => $request->address,
-        'participant_remarks'  => $request->participant_remarks,
-        'exhibit_name'         => $request->exhibit_name,
-        'level_type'           => $request->level_type,
-        'entry_from'           => 'Online'
-    ]);
-
-
-      // Query Builder
-DB::table('attendees_list')->insert([
-    'company_id'    => $request->company_id,
-    'exhibit_name'  => $request->exhibit_name,
-    'year_attended' => now()->setTimezone('Asia/Manila')->format('Y-m-d'),
-    'exhibit_name'  => $request->exhibit_name,
-    'encoded_by'    => $user->emp_id,
-    'created_at'    => now(),
-    'updated_at'    => now(),
-]);
-
-      // Upload images
-    $uploadCount = 0;
-
-    if ($request->hasFile('participant_photo')) {
-
-        foreach ($request->file('participant_photo') as $file) {
-
-            if ($file->isValid()) {
-
-                $path     = $file->store('participants', 'public');
-                $filename = basename($path);
-
-                $image = ParticipantImage::create([
-                    'participant_id' => $participant->id,
-                    'image_name'     => $filename
-                ]);
-
-                if ($image) {
-                    $uploadCount++;
-                }
-
-            }
-
-        }
-
-    }
-
-    if ($uploadCount > 0) {
-        $UploadStatus = $uploadCount . " image(s) uploaded successfully";
-    } else {
-        $UploadStatus = "No image uploaded";
-    }
-
-      // Send email
-    try {
-
-        Mail::to($request->email)
-            ->queue(new ParticipantBrochureMail($participant));
-
-        $emailStatus = "Email queued successfully";
-
-    } catch (\Exception $e) {
-
-        $emailStatus = "Email failed: ".$e->getMessage();
-
-    }
-
-    return response()->json([
-        'success'      => true,
-        'email_status' => $emailStatus,
-        'UploadStatus' => $UploadStatus,
-        'message'      => 'Participant saved successfully'
-    ]);
-} */
 
 public function storeAjax(Request $request)
 {
@@ -858,7 +752,6 @@ public function storeAjax(Request $request)
         DB::table('attendees_list')->insert([
             'company_id'       => $request->company_id,
             'exhibit_name'     => $request->exhibit_name,
-           
             'year_attended'    => now()->format('Y-m-d'),
             'encoded_by'       => $user->emp_id,
             'created_at'       => now(),

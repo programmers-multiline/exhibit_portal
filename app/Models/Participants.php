@@ -44,6 +44,11 @@ class Participants extends Model
         return $this->belongsTo(Company::class, 'company_id');
     }
 
+   public function getNameAndPositionAttribute()
+{
+    return $this->participant_name . '<br><br>' . $this->participant_position;
+}
+
 
       
         public function images()

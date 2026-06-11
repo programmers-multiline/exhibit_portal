@@ -11,8 +11,8 @@
 <table id="ParticipantTbl" class="table table-bordered table-responsive nowrap w-100">
     <thead>
         <tr>
-            <th colspan="12" class="text-center">Participants Details</th>
-            <th colspan="2" class="text-center">Agent Details</th>
+            <th colspan="10" class="text-center">Participants Details</th>
+            <th colspan="1" class="text-center">Agent Details</th>
         </tr>
 
         <tr>
@@ -23,14 +23,14 @@
             <th>Name</th>
             <th>Email</th>
             <th>Company</th>
-            <th>Position</th>
+           <!--  <th>Position</th> -->
             <th>Contact#</th>
-            <th>Source</th>
+            <!-- <th>Source</th> -->
             <th>Address</th>
             <th>Date</th>
             <th>Remarks</th>
             <th>Assisted by</th>
-            <th>Action</th>
+            <!-- <th>Action</th> -->
         </tr>
     </thead>
 </table>
@@ -588,19 +588,26 @@ $(document).ready(function(){
             { data: 'checkbox', name: 'checkbox', orderable:false, searchable:false },
             { data: 'exhibit_name', name: 'exhibit_name' },
             { data: 'participant_photo', name: 'participant_photo' },
-            { data: 'participant_name', name: 'participant_name' },
+          /*   { data: 'name_position', name: 'name_position' }, */
+   {
+    data: 'name_position',
+    name: 'name_position',
+    render: function(data){
+        return data;
+    }
+},
             { data: 'participant_email', name: 'participant_email' },
             { data: 'participant_company', name: 'participant_company' },
-            { data: 'participant_position', name: 'participant_position' },
+            /* { data: 'participant_position', name: 'participant_position' }, */
             { data: 'participant_contact', name: 'participant_contact' },
-            { data: 'participant_source', name: 'participant_source' },
+            /* { data: 'participant_source', name: 'participant_source' }, */
             { data: 'participant_address', name: 'participant_address' },
             { data: 'day_num', name: 'day_num' },
             { data: 'participant_remarks', name: 'participant_remarks' },
             { data: 'entry_by', name: 'entry_by' },
           /*   { data: 'agent_company', name: 'agent_company' },
-            { data: 'sales_manager', name: 'sales_manager' }, */
-            { data: 'action', name: 'action', orderable:false, searchable:false },
+            { data: 'sales_manager', name: 'sales_manager' }, 
+            { data: 'action', name: 'action', orderable:false, searchable:false },*/
                 
         ]
     });
